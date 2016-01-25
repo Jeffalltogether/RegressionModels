@@ -168,3 +168,76 @@ fit3 <- lm(DriversKilled ~ pp, data = Seatbelts)
 summary(fit3)$coef
 
 # PetrolPrice coefficient is -7.8387 with kilometers driven in model, and -9.81 without km driven in model
+
+# 11.1. Load the dataset Seatbelts as part of the datasets package via data(Seatbelts). Use
+# as.data.frame to convert the object to a dataframe. Fit a linear model of driver deaths with
+# kms, PetrolPrice and law as predictors.
+data(Seatbelts)
+Seatbelts <- as.data.frame(Seatbelts)
+Seatbelts <- mutate(Seatbelts, pp = (PetrolPrice - mean(PetrolPrice))/sd(PetrolPrice),
+                    mm = kms / 1000, #change the unit of kms from "per 1 kilometer driven" to "per 1000 kilometers driven"
+                    mmc = mm - mean(mm))
+
+fit <- lm(DriversKilled ~ kms + PetrolPrice + law, data = Seatbelts)
+summary(fit)$coef
+
+# 11.2. Refer to question 1. Directly estimate the residual variation via the function resid. Compare
+# with R's residual variance estimate.
+sum(resid(fit)^2)/(length(resid(fit))-4)
+summary(fit)$sigma^2
+
+# this is the same regardless of the re-scaled of the variables
+fit <- lm(DriversKilled ~ mmc + pp + law, data = Seatbelts)
+summary(fit)$sigma^2
+
+# 11.3. Refer to question 1. Perform an analysis of diagnostic measures including, dffits, dfbetas,
+# influence and hat diagonals.
+fit <- lm(DriversKilled ~ mmc + pp + law, data = Seatbelts)
+par(mfrow = c(2, 2))
+
+#### Leverage Plots
+plot(fit) #good for reviewing leverage
+par(mfrow = c(1, 1))
+
+#### Influence Plots
+plot(dffits(fit))
+dfbetas(fit)[1:100,]
+
+#dfbetas, good for identifying erronious data
+plot(dfbetas(fit)[,2]) #dfbetas for the MPG predictor
+plot(dfbetas(fit)[,3]) #dfbetas for the PetrolPrice predictor
+
+# Cook's Distance / Malahanobas Distance
+# a weighted distance between the weighted distance we
+# get when the datapoint is included vs. when the data point is not included.
+plot(cooks.distance(fit))
+
+##### Model Selection
+# If we omit variables, we get BIAS because we fail to account for the effect of 
+# important variables and over-estimate model variance.
+# It we include too many useless variables in the model, we get VARIANCE. We
+# increase the variance of the important variables by adding unimportant and
+# correlated variables.
+
+# 12.1. Load the dataset Seatbelts as part of the datasets package via data(Seatbelts). Use
+# as.data.frame to convert the object to a dataframe. Fit a linear model of driver deaths with
+# kms, PetrolPrice and law as predictors.
+data(Seatbelts)
+Seatbelts <- as.data.frame(Seatbelts)
+Seatbelts <- mutate(Seatbelts, pp = (PetrolPrice - mean(PetrolPrice))/sd(PetrolPrice),
+                    mm = kms / 1000, #change the unit of kms from "per 1 kilometer driven" to "per 1000 kilometers driven"
+                    mmc = mm - mean(mm))
+fit <- lm(DriversKilled ~ mmc + pp + law, data = Seatbelts)
+
+# 12.2. Perform a model selection exercise to arrive at a final model.
+fit0 <- lm(DriversKilled ~ law , data = Seatbelts)
+fit1 <- lm(DriversKilled ~ law + mmc , data = Seatbelts)
+fit2 <- lm(DriversKilled ~ law + pp , data = Seatbelts)
+fit3 <- lm(DriversKilled ~ law + pp + mmc , data = Seatbelts)
+anova(fit1, fit2, fit3, fit4) #these four models are not nested, but the results of this anova are useful in a similar way
+anova(fit0, fit3)
+rbind(summary(fit0)$coef[2,],
+      summary(fit1)$coef[2,],
+      summary(fit2)$coef[2,],
+      summary(fit3)$coef[2,])
+### Model "fit3" would be a good candidate
